@@ -1,7 +1,7 @@
 {
   "name": "Server Manager",
   "short_name": "SM-1",
-  "id": "./",
+  "id": "sm1-app-v2",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
