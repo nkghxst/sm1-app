@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#1b1d1f">
+  <title>Server Manager</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="application-name" content="SM-1">
+  <link rel="stylesheet" href="app.css">
+  <script defer src="vendor/qrcode.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <main class="rack">
+    <div class="ear" aria-hidden="true"><span class="screw pywebview-drag-region"></span><span class="ear-grip pywebview-drag-region"></span><span class="screw pywebview-drag-region"></span></div>
+    <div class="face">
+      <header class="topbar">
+        <div class="mark pywebview-drag-region">
+          <h1 class="wordmark">Server Manager</h1>
+          <p class="model">SM-1 &middot; dev server rack</p>
+        </div>
+        <div class="lcd pywebview-drag-region" role="status" aria-live="polite">
+          <p id="lcd-1" class="lcd-line">Connecting&hellip;</p>
+          <p id="lcd-2" class="lcd-line lcd-sub">&nbsp;</p>
+        </div>
+      </header>
+
+      <section id="config-errors" class="alert" aria-label="Configuration errors" hidden></section>
+
+      <div class="panels">
+        <section class="panel servers-panel" aria-labelledby="servers-label">
+          <h2 id="servers-label" class="panel-label">Servers</h2>
+          <div id="servers" class="rows" role="listbox" aria-labelledby="servers-label"></div>
+          <p id="empty" class="empty" hidden>No servers configured. Add one to servers.toml, then press Reload.</p>
+        </section>
+
+        <section class="panel detail-panel" aria-labelledby="detail-label">
+          <h2 id="detail-label" class="panel-label">Selected</h2>
+          <div id="detail" hidden>
+            <div class="detail-head">
+              <span id="d-led" class="led" aria-hidden="true"></span>
+              <h3 id="d-name" class="detail-name"></h3>
+              <span id="d-state" class="chip chip-state"></span>
+            </div>
+            <dl class="readout">
+              <div><dt>Port</dt><dd id="d-port"></dd></div>
+              <div><dt>PID</dt><dd id="d-pid"></dd></div>
+              <div><dt>Uptime</dt><dd id="d-uptime"></dd></div>
+              <div><dt>Build</dt><dd id="d-build"></dd></div>
+            </dl>
+            <div id="d-note" class="note" hidden><p id="d-note-main"></p><code id="d-note-cmd"></code></div>
+            <h4 class="sub-label">Links <span class="hint">tap for QR + copy</span></h4>
+            <div id="d-links" class="link-chips"></div>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel log-panel" aria-labelledby="log-label">
+        <div class="panel-label-row">
+          <h2 id="log-label" class="panel-label">Log <span id="log-name"></span></h2>
+          <span class="hint">last 400 lines</span>
+        </div>
+        <pre id="log" class="log" tabindex="0" aria-label="Server log output"></pre>
+      </section>
+
+      <nav class="keys" aria-label="Controls for the selected server">
+        <button id="k-primary" class="key key-hot" type="button" data-action="primary">&#9654; Start</button>
+        <button id="k-restart" class="key" type="button" data-action="restart">&#8635; Restart</button>
+        <button id="k-rebuild" class="key" type="button" data-action="rebuild">Rebuild</button>
+        <a id="k-open" class="key" target="_blank" rel="noreferrer">Open &#9656;</a>
+        <button id="k-auto" class="key key-toggle" type="button" aria-pressed="false"
+          title="Restart automatically after a crash"><span class="key-led" aria-hidden="true"></span>Auto-restart</button>
+        <span class="keys-gap" aria-hidden="true"></span>
+        <button id="reload" class="key key-quiet" type="button">Reload</button>
+        <button id="phone" class="key key-quiet" type="button" hidden>Phone &#9656;</button>
+      </nav>
+
+      <footer class="foot pywebview-drag-region">Closing this window leaves your servers running.</footer>
+    </div>
+    <div class="ear ear-right">
+      <div class="winkeys" aria-label="Window">
+        <button id="win-min" class="winkey" type="button" title="Minimise" aria-label="Minimise">&#8211;</button>
+        <button id="win-hide" class="winkey winkey-close" type="button" title="Hide to tray (servers keep running)" aria-label="Hide to tray">&#215;</button>
+      </div>
+      <span class="screw pywebview-drag-region" aria-hidden="true"></span><span class="ear-grip pywebview-drag-region" aria-hidden="true"></span><span class="screw pywebview-drag-region" aria-hidden="true"></span>
+    </div>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <dialog id="qr-dialog" class="qr-dialog" aria-labelledby="qr-title">
+    <div class="dialog-head"><h2 id="qr-title"></h2><button id="qr-close" class="key key-quiet" type="button">Close</button></div>
+    <p id="qr-note" class="dialog-note" hidden></p>
+    <div id="qr" class="qr" role="img" aria-label="QR code for the link below"></div>
+    <a id="qr-url" class="qr-url" target="_blank" rel="noreferrer"></a>
+    <button id="qr-copy" class="key key-hot" type="button">Copy link</button>
+    <button id="qr-alt" class="qr-alt" type="button" hidden></button>
+  </dialog>
+</body>
+</html>

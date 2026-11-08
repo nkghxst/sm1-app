@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- SM-1 small-size variant (use at 32 px and below: tray, taskbar, favicon). Same LED colour slots as sm1.svg. -->
+  <rect x="8" y="8" width="496" height="496" rx="96" fill="#2b2e31" stroke="#000" stroke-width="16"/>
+  <rect x="216" y="104" width="208" height="56" rx="20" fill="#5a6066"/>
+  <rect x="216" y="228" width="208" height="56" rx="20" fill="#5a6066"/>
+  <rect x="216" y="352" width="208" height="56" rx="20" fill="#5a6066"/>
+  <circle cx="136" cy="132" r="60" fill="#38ff7a"/>
+  <circle cx="136" cy="256" r="60" fill="#38ff7a"/>
+  <circle cx="136" cy="380" r="60" fill="#ffb000"/>
+</svg>
