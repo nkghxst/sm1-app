@@ -6,6 +6,7 @@ const $ = (selector, parent = document) => parent.querySelector(selector);
 const LABELS = {up: 'up', starting: 'starting', building: 'building', stopping: 'stopping',
   unhealthy: 'unhealthy', crashed: 'crashed', 'port-busy': 'port busy', stopped: 'stopped'};
 const LINK_NAMES = {local: 'Local', lan: 'LAN', meshnet: 'Meshnet'};
+const PUB_LABELS = {none: 'not published', publishing: 'publishing…', published: 'live', unpublishing: 'removing…', failed: 'failed'};
 const label = state => LABELS[state] || String(state);
 
 // ---------- pure helpers (tested in tests/test_ui.py) ----------
@@ -270,6 +271,29 @@ if (typeof document !== 'undefined' && document.getElementById && document.getEl
     $('#k-auto').disabled = c.autoDisabled;
     $('#k-auto').setAttribute('aria-pressed', String(Boolean(server.autorestart)));
     setOpen(c.openable ? openUrlFor(server.links, linkHost) : null);
+    renderPublish(server, c);
+  };
+
+  const renderPublish = (server, c) => {
+    const pub = server.publish || {state: 'none'};
+    const box = $('#d-publish');
+    box.hidden = !server.can_publish && pub.state === 'none';
+    if (box.hidden) return;
+    const moving = ['publishing', 'unpublishing'].includes(pub.state);
+    box.dataset.pub = pub.state;
+    $('#p-state').textContent = PUB_LABELS[pub.state] || pub.state;
+    const url = safeLinks({hosted: pub.url}).hosted;
+    $('#p-link').hidden = !url;
+    $('#p-link').title = url || '';
+    $('#p-link').onclick = url ? () => showQr(`${server.name} · hosted copy`, url,
+      'Public GitHub Pages copy (marked noindex). It stays up with the desktop off until you unpublish.') : null;
+    const when = pub.at ? new Date(pub.at).toLocaleString([], {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'}) : '';
+    $('#p-detail').textContent = [pub.detail, pub.commit, when].filter(Boolean).join(' · ');
+    const blocked = c.autoDisabled || moving || !server.can_publish;
+    $('#k-publish').textContent = pub.state === 'published' ? 'Republish' : 'Publish';
+    $('#k-publish').disabled = blocked;
+    $('#k-unpublish').hidden = !pub.repo;
+    $('#k-unpublish').disabled = c.autoDisabled || moving;
   };
 
   let logRequest = null;
@@ -339,6 +363,18 @@ if (typeof document !== 'undefined' && document.getElementById && document.getEl
       operate(key.dataset.action === 'primary' ? key.dataset.mode : key.dataset.action);
     });
   }
+  $('#k-publish').addEventListener('click', () => {
+    const server = servers.find(s => s.id === selected);
+    if (server && confirm(`Build and publish "${server.name}" to GitHub Pages?
+
+It will be public to anyone with the link (marked noindex, hard to guess) until you unpublish.`)) operate('publish');
+  });
+  $('#k-unpublish').addEventListener('click', () => {
+    const server = servers.find(s => s.id === selected);
+    if (server && confirm(`Remove the hosted copy of "${server.name}"?
+
+This turns Pages off and deletes its GitHub repo.`)) operate('unpublish');
+  });
   $('#k-auto').addEventListener('click', () => {
     const server = servers.find(s => s.id === selected);
     if (server) operate('autorestart', {on: !server.autorestart});

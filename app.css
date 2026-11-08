@@ -198,6 +198,18 @@ body[data-offline="true"] .lcd-line { color: var(--error-text); text-shadow: 0 0
 .chip-link::after { content: "QR"; margin-left: 8px; padding-left: 8px; border-left: 1px solid #3a3f43; color: var(--label); }
 .chip-link:hover { color: var(--amber); border-color: var(--amber); }
 
+/* hosted copy (GitHub Pages) */
+.publish-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.chip-pub { color: var(--label); border-color: #3a3f43; }
+.publish[data-pub="published"] .chip-pub { color: var(--green); border-color: currentColor; }
+.publish[data-pub="publishing"] .chip-pub, .publish[data-pub="unpublishing"] .chip-pub { color: var(--amber); border-color: currentColor; }
+.publish[data-pub="failed"] .chip-pub { color: var(--error-text); border-color: currentColor; }
+.publish-keys { display: inline-flex; gap: 6px; margin-left: auto; }
+.key-small { height: 28px; padding: 0 10px; font-size: 10px; }
+.key-danger { color: var(--error-text); }
+.publish-detail { margin: 6px 0 0; font-size: 10.5px; color: var(--label); overflow-wrap: anywhere; }
+.publish-detail:empty { display: none; }
+
 /* ---------- log ---------- */
 .log-panel { margin-top: 12px; }
 .log {
