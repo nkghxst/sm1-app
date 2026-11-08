@@ -38,7 +38,7 @@
           <div id="servers" class="rows" role="listbox" aria-labelledby="servers-label"></div>
           <p id="empty" class="empty" hidden>No servers configured. Add one to servers.toml, then press Reload.</p>
           <div id="discovered" class="discovered" hidden>
-            <h3 class="sub-label">Discovered <span class="hint">from projects' .claude/launch.json &middot; not managed yet</span></h3>
+            <h3 class="sub-label">Discovered <span class="hint">from launch.json and package.json &middot; not managed yet</span></h3>
             <div id="suggestions" class="suggestions"></div>
           </div>
         </section>
@@ -57,7 +57,8 @@
               <div><dt>Uptime</dt><dd id="d-uptime"></dd></div>
               <div><dt>Build</dt><dd id="d-build"></dd></div>
             </dl>
-            <div id="d-note" class="note" hidden><p id="d-note-main"></p><code id="d-note-cmd"></code></div>
+            <div id="d-note" class="note" hidden><p id="d-note-main"></p><code id="d-note-cmd"></code>
+              <button id="d-handover" class="key key-small note-key" type="button" hidden>Handover preview</button></div>
             <h4 class="sub-label">Links <span class="hint">tap for QR + copy</span></h4>
             <div id="d-links" class="link-chips"></div>
             <div id="d-publish" class="publish" hidden>
@@ -76,11 +77,53 @@
         </section>
       </div>
 
+      <div class="panels panels-tools">
+        <section class="panel events-panel" aria-labelledby="events-label">
+          <div class="panel-label-row">
+            <h2 id="events-label" class="panel-label">Events <span class="hint">last 100, this session</span></h2>
+            <span class="events-controls">
+              <span id="alerts-state" class="chip chip-alerts"></span>
+              <button id="k-quiet" class="key key-small key-toggle" type="button" aria-pressed="false"
+                title="Pause desktop alerts until the manager restarts. Events are still recorded.">
+                <span class="key-led" aria-hidden="true"></span>Quiet</button>
+            </span>
+          </div>
+          <ol id="events" class="events" aria-label="Recent incidents, newest first"></ol>
+          <p id="events-empty" class="empty">No incidents. Crashes and failed builds will appear here.</p>
+          <button id="events-more" class="text-key" type="button" hidden></button>
+        </section>
+
+        <section class="panel ports-panel" aria-labelledby="ports-label">
+          <div class="panel-label-row">
+            <h2 id="ports-label" class="panel-label">Ports</h2>
+            <span class="hint" title="A reservation lasts 2 minutes, or until a server registers on that port">held 2 min</span>
+          </div>
+          <form id="reserve" class="reserve" autocomplete="off">
+            <input id="r-label" class="field" type="text" maxlength="120" placeholder="label (optional)" aria-label="Reservation label">
+            <input id="r-port" class="field field-port" type="number" min="1" max="65535" inputmode="numeric" placeholder="any" aria-label="Preferred port (optional)">
+            <button class="key key-small key-hot" type="submit">Reserve</button>
+          </form>
+          <p id="reserve-remote" class="empty" hidden>Reserve ports from the desktop.</p>
+          <ul id="reservations" class="reservations" aria-label="Reserved ports"></ul>
+        </section>
+      </div>
+
       <section class="panel log-panel" aria-labelledby="log-label">
-        <div class="panel-label-row">
+        <div class="panel-label-row log-head">
           <h2 id="log-label" class="panel-label">Log <span id="log-name"></span></h2>
-          <span class="hint">last 400 lines</span>
+          <form id="search" class="search" role="search" autocomplete="off">
+            <input id="q" class="field field-search" type="search" maxlength="256" placeholder="search this log" aria-label="Search the selected server's log">
+            <button id="q-regex" class="key key-small key-toggle" type="button" aria-pressed="false"
+              title="Treat the search as a regular expression (3-second limit)"><span class="key-led" aria-hidden="true"></span>Regex</button>
+            <select id="q-limit" class="field field-limit" aria-label="Maximum matches to show">
+              <option value="50">50 max</option><option value="100">100 max</option><option value="200">200 max</option>
+            </select>
+            <button class="key key-small" type="submit">Find</button>
+            <button id="q-clear" class="key key-small key-quiet" type="button" hidden>Live log</button>
+          </form>
         </div>
+        <p id="log-hint" class="log-hint" aria-live="polite">Last 400 lines, live.</p>
+        <p class="log-scope">Search covers the newest 5,000 lines (up to 1 MiB) of this log and its previous file, newest first.</p>
         <pre id="log" class="log" tabindex="0" aria-label="Server log output"></pre>
       </section>
 
@@ -116,6 +159,22 @@
     <a id="qr-url" class="qr-url" target="_blank" rel="noreferrer"></a>
     <button id="qr-copy" class="key key-hot" type="button">Copy link</button>
     <button id="qr-alt" class="qr-alt" type="button" hidden></button>
+  </dialog>
+
+  <dialog id="handover-dialog" class="qr-dialog handover-dialog" aria-labelledby="ho-title">
+    <div class="dialog-head"><h2 id="ho-title">Handover preview</h2><button id="ho-close" class="key key-quiet" type="button">Close</button></div>
+    <p class="dialog-note">Preview only. SM-1 never stops a process it didn't start.</p>
+    <dl class="handover">
+      <div><dt>Port</dt><dd id="ho-port"></dd></div>
+      <div><dt>Held by</dt><dd id="ho-holder"></dd></div>
+      <div><dt>Its command</dt><dd><code id="ho-holder-cmd"></code></dd></div>
+      <div><dt>SM-1 will run</dt><dd><code id="ho-command"></code></dd></div>
+      <div><dt>In</dt><dd><code id="ho-cwd"></code></dd></div>
+    </dl>
+    <ol class="handover-steps">
+      <li id="ho-step1"></li>
+      <li id="ho-step2"></li>
+    </ol>
   </dialog>
 </body>
 </html>
