@@ -37,6 +37,10 @@
           <h2 id="servers-label" class="panel-label">Servers</h2>
           <div id="servers" class="rows" role="listbox" aria-labelledby="servers-label"></div>
           <p id="empty" class="empty" hidden>No servers configured. Add one to servers.toml, then press Reload.</p>
+          <div id="discovered" class="discovered" hidden>
+            <h3 class="sub-label">Discovered <span class="hint">from projects' .claude/launch.json &middot; not managed yet</span></h3>
+            <div id="suggestions" class="suggestions"></div>
+          </div>
         </section>
 
         <section class="panel detail-panel" aria-labelledby="detail-label">

@@ -78,7 +78,18 @@ function parsePairing(hash) {
     return {base: url.origin, token};
   } catch (_) { return null; }
 }
-Object.assign(globalThis, {safeLinks, openUrlFor, uptime, splitDetail, lcdText, controlState, parsePairing});
+// Note shown under a discovered server. A port already in use means it is running elsewhere (usually an agent's
+// preview tool); SM-1 can add it but never stops what it doesn't own.
+function suggestionNote(s) {
+  if (s.conflict) return s.conflict;
+  if (s.holder) {
+    const exe = String(s.holder.exe || 'a process').split(/[\\/]/).pop();
+    return `running elsewhere: ${exe} (PID ${s.holder.pid}) — stop it there, then start it here`;
+  }
+  return '';
+}
+Object.assign(globalThis, {safeLinks, openUrlFor, uptime, splitDetail, lcdText, controlState, parsePairing,
+  suggestionNote});
 
 // ---------- runtime ----------
 if (typeof document !== 'undefined' && document.getElementById && document.getElementById('servers')) {
@@ -209,6 +220,50 @@ if (typeof document !== 'undefined' && document.getElementById && document.getEl
     $('.row-note', row).textContent = note; $('.row-note', row).hidden = !note;
     row.title = server.detail || '';
   };
+
+  const suggestPending = new Set();
+  const renderSuggestions = list => {
+    const box = $('#suggestions');
+    const signature = JSON.stringify([list, [...suggestPending]]);
+    $('#discovered').hidden = !list.length;
+    if (box.dataset.signature === signature) return;
+    box.dataset.signature = signature;
+    box.replaceChildren();
+    for (const s of list) {
+      const row = document.createElement('div'); row.className = 'sugg';
+      const led = document.createElement('span'); led.className = 'led led-ghost'; led.setAttribute('aria-hidden', 'true');
+      const name = document.createElement('span'); name.className = 'sugg-name'; name.textContent = s.name;
+      const port = document.createElement('span'); port.className = 'chip chip-port'; port.textContent = `:${s.port}`;
+      const meta = document.createElement('span'); meta.className = 'sugg-meta';
+      meta.textContent = s.project || '';
+      meta.title = [s.source, (s.command || []).join(' ')].filter(Boolean).join(' · ');
+      const note = document.createElement('span'); note.className = 'sugg-note';
+      note.textContent = suggestionNote(s); note.hidden = !note.textContent;
+      const keys = document.createElement('span'); keys.className = 'sugg-keys';
+      const busy = suggestPending.has(s.key) || Boolean(s.conflict);
+      const make = (label, cls, handler, disabled, title) => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = `key key-small ${cls}`;
+        b.textContent = label; b.disabled = disabled; if (title) b.title = title;
+        b.addEventListener('click', handler); keys.append(b);
+      };
+      make('Add & start', 'key-hot', () => suggest(s, 'add', {start: true}), busy || Boolean(s.holder),
+        s.holder ? 'Port in use elsewhere: add it, stop the other copy, then start it here' : '');
+      make('Add', '', () => suggest(s, 'add', {start: false}), busy);
+      make('Dismiss', 'key-quiet', () => suggest(s, 'dismiss'), suggestPending.has(s.key));
+      row.append(led, name, port, meta, note, keys);
+      box.append(row);
+    }
+  };
+  const suggest = async (s, action, body) => {
+    suggestPending.add(s.key); renderSuggestions(lastSuggestions);
+    try {
+      const reply = await (await post(`/api/suggestions/${encodeURIComponent(s.key)}/${action}`, body)).json();
+      toast(action === 'dismiss' ? `Dismissed ${s.name}` : `Added ${reply.id || s.name}`);
+      if (reply.id) selected = reply.id;
+    } catch (error) { toast(error.message); }
+    finally { suggestPending.delete(s.key); await poll(); }
+  };
+  let lastSuggestions = [];
 
   const setOpen = url => {
     const open = $('#k-open');
@@ -344,6 +399,8 @@ if (typeof document !== 'undefined' && document.getElementById && document.getEl
         render();
       } else if (!ids.has(selected)) select(servers[0].id);
       else { markSelection(false); render(); refreshLog(); }
+      lastSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+      renderSuggestions(lastSuggestions);
       const errors = $('#config-errors'); errors.replaceChildren();
       for (const error of data.manager.config_errors || []) {
         const line = document.createElement('p'); line.textContent = error; errors.append(line);
