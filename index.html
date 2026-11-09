@@ -37,82 +37,85 @@
           <h2 id="servers-label" class="panel-label">Servers</h2>
           <div id="servers" class="rows" role="listbox" aria-labelledby="servers-label"></div>
           <p id="empty" class="empty" hidden>No servers configured. Add one to servers.toml, then press Reload.</p>
-          <div id="discovered" class="discovered" hidden>
-            <h3 class="sub-label">Discovered <span class="hint">from launch.json and package.json &middot; not managed yet</span></h3>
+          <details id="discovered" class="fold discovered" data-fold="discovered" hidden>
+            <summary class="fold-head"><span class="fold-title">Discovered</span> <span id="disc-count" class="count"></span>
+              <span class="hint">launch.json and package.json entries not managed yet</span></summary>
             <div id="suggestions" class="suggestions"></div>
-          </div>
+          </details>
         </section>
 
-        <section class="panel detail-panel" aria-labelledby="detail-label">
-          <h2 id="detail-label" class="panel-label">Selected</h2>
-          <div id="detail" hidden>
-            <div class="detail-head">
-              <span id="d-led" class="led" aria-hidden="true"></span>
-              <h3 id="d-name" class="detail-name"></h3>
-              <span id="d-state" class="chip chip-state"></span>
-            </div>
-            <dl class="readout">
-              <div><dt>Port</dt><dd id="d-port"></dd></div>
-              <div><dt>PID</dt><dd id="d-pid"></dd></div>
-              <div><dt>Uptime</dt><dd id="d-uptime"></dd></div>
-              <div><dt>Build</dt><dd id="d-build"></dd></div>
-            </dl>
-            <div id="d-note" class="note" hidden><p id="d-note-main"></p><code id="d-note-cmd"></code>
-              <button id="d-handover" class="key key-small note-key" type="button" hidden>Handover preview</button></div>
-            <h4 class="sub-label">Links <span class="hint">tap for QR + copy</span></h4>
-            <div id="d-links" class="link-chips"></div>
-            <div id="d-publish" class="publish" hidden>
-              <h4 class="sub-label">Hosted copy <span class="hint">GitHub Pages &middot; public, not indexed</span></h4>
-              <div class="publish-row">
-                <span id="p-state" class="chip chip-pub"></span>
-                <button id="p-link" class="chip chip-link" type="button" hidden>Hosted</button>
-                <span class="publish-keys">
-                  <button id="k-publish" class="key key-small" type="button">Publish</button>
-                  <button id="k-unpublish" class="key key-small key-danger" type="button" hidden>Unpublish</button>
-                </span>
+        <div class="side">
+          <section class="panel detail-panel" aria-labelledby="detail-label">
+            <h2 id="detail-label" class="panel-label">Selected</h2>
+            <div id="detail" hidden>
+              <div class="detail-head">
+                <span id="d-led" class="led" aria-hidden="true"></span>
+                <h3 id="d-name" class="detail-name"></h3>
+                <span id="d-state" class="chip chip-state"></span>
               </div>
-              <p id="p-detail" class="publish-detail"></p>
+              <dl class="readout">
+                <div><dt>Port</dt><dd id="d-port"></dd></div>
+                <div><dt>PID</dt><dd id="d-pid"></dd></div>
+                <div><dt>Uptime</dt><dd id="d-uptime"></dd></div>
+                <div><dt>Build</dt><dd id="d-build"></dd></div>
+              </dl>
+              <div id="d-note" class="note" hidden><p id="d-note-main"></p><code id="d-note-cmd"></code>
+                <button id="d-handover" class="key key-small note-key" type="button" hidden>Handover preview</button></div>
+              <h4 class="sub-label">Links <span class="hint">tap for QR + copy</span></h4>
+              <div id="d-links" class="link-chips"></div>
+              <div id="d-publish" class="publish" hidden>
+                <h4 class="sub-label">Hosted copy <span class="hint">GitHub Pages &middot; public, not indexed</span></h4>
+                <div class="publish-row">
+                  <span id="p-state" class="chip chip-pub"></span>
+                  <button id="p-link" class="chip chip-link" type="button" hidden>Hosted</button>
+                  <span class="publish-keys">
+                    <button id="k-publish" class="key key-small" type="button">Publish</button>
+                    <button id="k-unpublish" class="key key-small key-danger" type="button" hidden>Unpublish</button>
+                  </span>
+                </div>
+                <p id="p-detail" class="publish-detail"></p>
+              </div>
             </div>
-          </div>
-        </section>
-      </div>
+          </section>
 
-      <div class="panels panels-tools">
-        <section class="panel events-panel" aria-labelledby="events-label">
-          <div class="panel-label-row">
-            <h2 id="events-label" class="panel-label">Events <span class="hint">last 100, this session</span></h2>
-            <span class="events-controls">
+          <details id="events-fold" class="panel fold events-panel" data-fold="events" open>
+            <summary class="fold-head"><span class="fold-title">Events</span> <span id="events-count" class="count"></span>
               <span id="alerts-state" class="chip chip-alerts"></span>
-              <button id="k-quiet" class="key key-small key-toggle" type="button" aria-pressed="false"
-                title="Pause desktop alerts until the manager restarts. Events are still recorded.">
-                <span class="key-led" aria-hidden="true"></span>Quiet</button>
-            </span>
-          </div>
-          <ol id="events" class="events" aria-label="Recent incidents, newest first"></ol>
-          <p id="events-empty" class="empty">No incidents. Crashes and failed builds will appear here.</p>
-          <button id="events-more" class="text-key" type="button" hidden></button>
-        </section>
+              <span class="hint">last 100 &middot; this session</span></summary>
+            <div class="fold-body">
+              <div class="events-controls">
+                <button id="k-quiet" class="key key-small key-toggle" type="button" aria-pressed="false"
+                  title="Pause desktop alerts until the manager restarts. Events are still recorded.">
+                  <span class="key-led" aria-hidden="true"></span>Quiet</button>
+              </div>
+              <ol id="events" class="events" aria-label="Recent incidents, newest first"></ol>
+              <p id="events-empty" class="empty">No incidents. Crashes and failed builds will appear here.</p>
+              <button id="events-more" class="text-key" type="button" hidden></button>
+            </div>
+          </details>
 
-        <section class="panel ports-panel" aria-labelledby="ports-label">
-          <div class="panel-label-row">
-            <h2 id="ports-label" class="panel-label">Ports</h2>
-            <span class="hint" title="A reservation lasts 2 minutes, or until a server registers on that port">held 2 min</span>
-          </div>
-          <form id="reserve" class="reserve" autocomplete="off">
-            <input id="r-label" class="field" type="text" maxlength="120" placeholder="label (optional)" aria-label="Reservation label">
-            <input id="r-port" class="field field-port" type="number" min="1" max="65535" inputmode="numeric" placeholder="any" aria-label="Preferred port (optional)">
-            <button class="key key-small key-hot" type="submit">Reserve</button>
-          </form>
-          <p id="reserve-remote" class="empty" hidden>Reserve ports from the desktop.</p>
-          <ul id="reservations" class="reservations" aria-label="Reserved ports"></ul>
-        </section>
+          <details id="ports-fold" class="panel fold ports-panel" data-fold="ports">
+            <summary class="fold-head"><span class="fold-title">Ports</span> <span id="ports-count" class="count"></span>
+              <span class="hint" title="A reservation lasts 2 minutes, or until a server registers on that port">reserve a free port &middot; held 2 min</span></summary>
+            <div class="fold-body">
+              <form id="reserve" class="reserve" autocomplete="off">
+                <input id="r-label" class="field" type="text" maxlength="120" placeholder="label (optional)" aria-label="Reservation label">
+                <input id="r-port" class="field field-port" type="number" min="1" max="65535" inputmode="numeric" placeholder="any" aria-label="Preferred port (optional)">
+                <button class="key key-small key-hot" type="submit">Reserve</button>
+              </form>
+              <p id="reserve-remote" class="empty" hidden>Reserve ports from the desktop.</p>
+              <ul id="reservations" class="reservations" aria-label="Reserved ports"></ul>
+            </div>
+          </details>
+        </div>
       </div>
 
       <section class="panel log-panel" aria-labelledby="log-label">
         <div class="panel-label-row log-head">
           <h2 id="log-label" class="panel-label">Log <span id="log-name"></span></h2>
           <form id="search" class="search" role="search" autocomplete="off">
-            <input id="q" class="field field-search" type="search" maxlength="256" placeholder="search this log" aria-label="Search the selected server's log">
+            <input id="q" class="field field-search" type="search" maxlength="256" placeholder="search this log" aria-label="Search the selected server's log"
+              title="Searches the newest 5,000 lines (up to 1 MiB) of this log and its previous file, newest first">
             <button id="q-regex" class="key key-small key-toggle" type="button" aria-pressed="false"
               title="Treat the search as a regular expression (3-second limit)"><span class="key-led" aria-hidden="true"></span>Regex</button>
             <select id="q-limit" class="field field-limit" aria-label="Maximum matches to show">
@@ -122,8 +125,7 @@
             <button id="q-clear" class="key key-small key-quiet" type="button" hidden>Live log</button>
           </form>
         </div>
-        <p id="log-hint" class="log-hint" aria-live="polite">Last 400 lines, live.</p>
-        <p class="log-scope">Search covers the newest 5,000 lines (up to 1 MiB) of this log and its previous file, newest first.</p>
+        <p id="log-hint" class="log-hint" aria-live="polite">Last 400 lines, live. Search covers the newest 5,000 lines (1 MiB) of this log and the previous one.</p>
         <pre id="log" class="log" tabindex="0" aria-label="Server log output"></pre>
       </section>
 
@@ -144,10 +146,13 @@
     <div class="ear ear-right">
       <div class="winkeys" aria-label="Window">
         <button id="win-min" class="winkey" type="button" title="Minimise" aria-label="Minimise">&#8211;</button>
+        <button id="win-max" class="winkey" type="button" title="Maximise or restore (or double-click the title)" aria-label="Maximise or restore">&#9633;</button>
         <button id="win-hide" class="winkey winkey-close" type="button" title="Hide to tray (servers keep running)" aria-label="Hide to tray">&#215;</button>
       </div>
       <span class="screw pywebview-drag-region" aria-hidden="true"></span><span class="ear-grip pywebview-drag-region" aria-hidden="true"></span><span class="screw pywebview-drag-region" aria-hidden="true"></span>
     </div>
+    <div id="win-grip" class="win-grip" role="button" tabindex="0" title="Drag to resize, or use the arrow keys (Alt+arrow anywhere)"
+      aria-label="Resize window: arrow keys change the size; Alt plus arrow keys work anywhere"></div>
   </main>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

@@ -175,9 +175,82 @@ if (typeof document !== 'undefined' && document.getElementById && document.getEl
   // Native shell: the manager's pywebview window loads /?shell=native and exposes minimize()/hide().
   if (new URLSearchParams(location.search).get('shell') === 'native') {
     document.documentElement.dataset.shell = 'native';
-    const api = name => () => { try { window.pywebview.api[name](); } catch (error) { toast('Window control unavailable'); } };
-    $('#win-min').addEventListener('click', api('minimize'));
-    $('#win-hide').addEventListener('click', api('hide'));
+    const call = (name, ...args) => {
+      try { return Promise.resolve(window.pywebview.api[name](...args)); }
+      catch (error) { toast('Window control unavailable'); return Promise.resolve(); }
+    };
+    $('#win-min').addEventListener('click', () => call('minimize'));
+    $('#win-hide').addEventListener('click', () => call('hide'));
+    $('#win-max').addEventListener('click', () => call('toggle_maximize'));
+    for (const area of document.querySelectorAll('.mark, .lcd')) {
+      area.addEventListener('dblclick', () => call('toggle_maximize'));
+    }
+    // Frameless windows have no resize border: the corner grip resizes in logical (CSS) pixels. One request pump
+    // serves every drag (never two calls in flight); the latest wanted size is always sent, including on release.
+    const grip = $('#win-grip');
+    let drag = null, want = null, busy = false, sent = null, settle = null;
+    const pump = () => {
+      if (busy || !want) return;
+      const {w, h} = want; want = null; busy = true; sent = {w, h}; clearTimeout(settle);
+      call('resize', w, h).then(applied => {
+        // The native side clamps to the minimum size and reports what it applied: rebase on that, keeping any
+        // steps queued meanwhile, so steps against a limit don't pile up as ineffective backlog.
+        if (Array.isArray(applied) && applied.length === 2 && applied.every(Number.isFinite)) {
+          const [aw, ah] = applied;
+          // Only relative keyboard steps are rebased; a queued drag target is absolute and stays as released.
+          if (want && want.rel) want = {w: want.w + aw - w, h: want.h + ah - h, rel: true};
+          sent = {w: aw, h: ah};
+        }
+      }).finally(() => {
+        busy = false; pump();
+        // outerWidth/Height catch up a moment after the native resize; until then keep counting from `sent`.
+        if (!busy) settle = setTimeout(() => { sent = null; }, 400);
+      });
+    };
+    const target = event => ({w: Math.round(drag.w + event.screenX - drag.x), h: Math.round(drag.h + event.screenY - drag.y)});
+    grip.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || drag) return;
+      event.preventDefault(); grip.setPointerCapture(event.pointerId);
+      drag = {id: event.pointerId, x: event.screenX, y: event.screenY, w: window.outerWidth, h: window.outerHeight};
+    });
+    grip.addEventListener('pointermove', event => {
+      if (!drag || event.pointerId !== drag.id) return;
+      want = target(event); pump();
+    });
+    grip.addEventListener('pointerup', event => {
+      if (!drag || event.pointerId !== drag.id) return;
+      want = target(event); drag = null; pump();
+    });
+    grip.addEventListener('pointercancel', event => { if (drag && event.pointerId === drag.id) drag = null; });
+    // Keyboard: arrow keys on the focused grip resize in 40 px steps (Alt+arrow anywhere does the same).
+    // Steps accumulate from the newest wanted or sent size, so repeated presses aren't lost while a call is busy.
+    const nudge = (dx, dy) => {
+      const base = want || sent || {w: window.outerWidth, h: window.outerHeight};
+      // Mirror the native minimum (920 x 640) so steps beyond it don't accumulate.
+      want = {w: Math.max(920, base.w + dx), h: Math.max(640, base.h + dy), rel: true}; pump();
+    };
+    const STEPS = {ArrowRight: [40, 0], ArrowLeft: [-40, 0], ArrowDown: [0, 40], ArrowUp: [0, -40]};
+    grip.addEventListener('keydown', event => {
+      const step = STEPS[event.key]; if (!step) return;
+      event.preventDefault(); nudge(...step);
+    });
+    document.addEventListener('keydown', event => {
+      const step = STEPS[event.key];
+      // defaultPrevented: the focused grip already handled this key (one step per press).
+      if (!step || !event.altKey || event.ctrlKey || event.metaKey || event.defaultPrevented) return;
+      event.preventDefault(); nudge(...step);
+    });
+  }
+
+  // Collapsible sections remember whether they were open (per device).
+  for (const fold of document.querySelectorAll('details[data-fold]')) {
+    try {
+      const saved = localStorage.getItem(`sm1.fold.${fold.dataset.fold}`);
+      if (saved !== null) fold.open = saved === 'open';
+    } catch (_) { /* storage optional */ }
+    fold.addEventListener('toggle', () => {
+      try { localStorage.setItem(`sm1.fold.${fold.dataset.fold}`, fold.open ? 'open' : 'closed'); } catch (_) { /* optional */ }
+    });
   }
 
   // Remote mode: the installable copy on GitHub Pages talks to the manager over Meshnet with a bearer token.
@@ -317,13 +390,24 @@ if (typeof document !== 'undefined' && document.getElementById && document.getEl
   };
   // Rows are keyed and rebuilt only when their own data changes, so typing, caret and focus survive polls.
   const suggRows = new Map();   // key -> {signature, row}
+  const openPkgs = new Set();   // package suggestions whose port form is open
+  const togglePkg = key => {
+    if (openPkgs.has(key)) openPkgs.delete(key); else openPkgs.add(key);
+    renderSuggestions(lastSuggestions);
+    const entry = suggRows.get(key);
+    const focus = entry && entry.row.querySelector(openPkgs.has(key) ? '.field-port' : '.sugg-keys button');
+    if (focus) focus.focus();
+  };
   const renderSuggestions = list => {
     const box = $('#suggestions');
     $('#discovered').hidden = !list.length;
+    $('#disc-count').textContent = String(list.length);
     const keys = new Set(list.map(s => s.key));
-    for (const [key, entry] of suggRows) if (!keys.has(key)) { entry.row.remove(); suggRows.delete(key); drafts.delete(key); }
+    for (const [key, entry] of suggRows) {
+      if (!keys.has(key)) { entry.row.remove(); suggRows.delete(key); drafts.delete(key); openPkgs.delete(key); }
+    }
     list.forEach((s, index) => {
-      const signature = JSON.stringify([s, suggestPending.has(s.key)]);
+      const signature = JSON.stringify([s, suggestPending.has(s.key), openPkgs.has(s.key)]);
       let entry = suggRows.get(s.key);
       if (!entry || entry.signature !== signature) {
         const row = suggestionRow(s);
@@ -340,9 +424,12 @@ if (typeof document !== 'undefined' && document.getElementById && document.getEl
       const led = el('span', 'led led-ghost'); led.setAttribute('aria-hidden', 'true');
       const name = el('span', 'sugg-name', s.name);
       const port = el('span', 'chip chip-port', pkg ? 'npm' : `:${s.port}`);
-      const meta = el('span', 'sugg-meta', s.project || '');
-      meta.title = [s.source, (s.command || []).join(' ')].filter(Boolean).join(' · ');
-      const note = el('span', 'sugg-note', suggestionNote(s)); note.hidden = !note.textContent;
+      const meta = el('span', 'sugg-meta', pkg ? `${s.project || ''} · npm run ${s.script} → ${s.script_text || ''}` : s.project || '');
+      meta.title = [s.source, pkg ? s.script_text : (s.command || []).join(' ')].filter(Boolean).join(' · ');
+      // Elsewhere than the desktop, say visibly why a package can't be set up (a disabled key can't show a tooltip).
+      const note = el('span', 'sugg-note', [suggestionNote(s), pkg && !desktop ? 'Needs a port: set it up from the desktop' : '']
+        .filter(Boolean).join(' · '));
+      note.hidden = !note.textContent;
       const keys = el('span', 'sugg-keys');
       const busy = suggestPending.has(s.key) || Boolean(s.conflict);
       const make = (label, cls, handler, disabled, title) => {
@@ -352,13 +439,23 @@ if (typeof document !== 'undefined' && document.getElementById && document.getEl
         return b;
       };
       row.append(led, name, port, meta);
-      if (pkg) row.append(packageFields(s, busy, make));
-      else {
+      // Package scripts stay one compact line until "Set up" opens the port form for that row.
+      if (pkg && openPkgs.has(s.key)) {
+        row.classList.add('sugg-open');
+        row.append(packageFields(s, busy, make));
+        make('Close', 'key-quiet', () => togglePkg(s.key), false);
+      } else if (pkg) {
+        // Setup needs the desktop (ports are desktop-only), so elsewhere the key is shown disabled with the reason.
+        make('Set up…', '', () => togglePkg(s.key), !desktop || suggestPending.has(s.key),
+          desktop ? 'Choose a port (and optional arguments), then add it' : 'Needs a port: add it from the desktop');
+      } else {
         make('Add & start', 'key-hot', () => suggest(s, 'add', {start: true}), busy || Boolean(s.holder),
           s.holder ? 'Port in use elsewhere: add it, stop the other copy, then start it here' : '');
         make('Add', '', () => suggest(s, 'add', {start: false}), busy);
       }
-      make('Dismiss', 'key-quiet', () => suggest(s, 'dismiss'), suggestPending.has(s.key));
+      const dismiss = make('×', 'key-quiet key-icon', () => suggest(s, 'dismiss'), suggestPending.has(s.key),
+        `Dismiss ${s.name} (it won't be suggested again)`);
+      dismiss.setAttribute('aria-label', `Dismiss ${s.name}`);
       row.append(note, keys);
       return row;
     }
@@ -367,9 +464,8 @@ if (typeof document !== 'undefined' && document.getElementById && document.getEl
   // and keep Add disabled until the draft is valid. Only the desktop may choose ports.
   const packageFields = (s, busy, make) => {
     const wrap = el('div', 'pkg');
-    const script = el('code', 'pkg-script', `npm run ${s.script}  →  ${s.script_text || ''}`);
-    script.title = s.script_text || '';
-    wrap.append(script);
+    // The full script body, wrapped, so it can be read before adding (the collapsed line may truncate it).
+    wrap.append(el('code', 'pkg-script', `npm run ${s.script} → ${s.script_text || ''}`));
     if (!desktop) {
       wrap.append(el('span', 'pkg-hint', 'Needs a port: add it from the desktop.'));
       make('Add', '', () => {}, true);
@@ -571,6 +667,9 @@ if (typeof document !== 'undefined' && document.getElementById && document.getEl
     }
     for (const item of list.children) item.dataset.current = String(item.dataset.server === selected);
     $('#events-empty').hidden = newest.length > 0;
+    const count = $('#events-count');
+    count.textContent = newest.length ? String(newest.length) : '';
+    count.dataset.tone = newest.some(e => eventView(e, now).tone === 'bad') ? 'bad' : '';
     const more = $('#events-more');
     more.hidden = newest.length <= 5;
     more.textContent = showAllEvents ? 'Show fewer' : `Show all ${newest.length}`;
@@ -609,6 +708,7 @@ if (typeof document !== 'undefined' && document.getElementById && document.getEl
       list.append(item);
     }
     list.hidden = !live.length;
+    $('#ports-count').textContent = live.length ? String(live.length) : '';
     list.dataset.stale = String(reservationsStale);
     list.title = reservationsStale ? 'Manager offline: these may already have been released' : '';
   };
@@ -659,7 +759,7 @@ if (typeof document !== 'undefined' && document.getElementById && document.getEl
   // Every search has a sequence number; Live log and any selection change bump it, so a late reply (success or
   // error) for an abandoned search is ignored.
   let searching = false, searchSeq = 0, searchController = null;
-  const LIVE_HINT = 'Last 400 lines, live.';
+  const LIVE_HINT = 'Last 400 lines, live. Search covers the newest 5,000 lines (1 MiB) of this log and the previous one.';
   const resetSearch = () => {
     searchSeq += 1;
     if (searchController) { searchController.abort(); searchController = null; }
